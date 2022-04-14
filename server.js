@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3002;
 
 app.use(verifyUser);
 app.use(express.json());
+app.get('/user', handleGetUser);
 
 //Books Schema
 
@@ -66,7 +67,6 @@ app.put('/books/:id', async (request, response, next) => {
 //Reading Schema
 
 app.get('/reading', async (req, res) => {
-  console.log(req.user.email)
   try{
   const reads = await Reading.find({email:req.user.email});
   res.send(reads);
@@ -76,17 +76,27 @@ app.get('/reading', async (req, res) => {
   }
 });
 
-app.delete('/reading/:id', async (request, response, next) => {
+app.delete('/reading/:id', async (req, res, next) => {
+  const {id} = req.params
   try {
-    await Reading.findByIdAndDelete(request.params.id);
-    response.status(204).send('Book was successfully deleted.');
+    const book = await Reading.findOne({_id:id, email:req.user.email});
+    console.log(book);
+    if(book) {
+      await Reading.findByIdAndDelete(id);
+      res.status(204).send("book deleted");
+    }else {
+      res.status(400).send('unable to delete book');
+    }
   } catch (error) {
     console.error(error);
     next(error);
   }
 });
 
+app.use(express.json());
+
 app.post('/reading', async (request, response, next) => {
+  console.log(request.body);
   try {
     const newReading = await Reading.create({...request.body, email:request.user.email});
     response.status(204).send('Book was successfully created.');
@@ -96,25 +106,15 @@ app.post('/reading', async (request, response, next) => {
   }
 });
 
-app.put('/reading/:id', async (request, response, next) => {
-  try {
-    const updateBook = await Reading.findByIdAndUpdate(request.params.id, request.body, { new: true });
-    response.status(200).send(updateBook);
-  } catch (error) {
-    console.error(error);
-    next(error);
-  }
-})
-
 app.get('*', (request, response) => {
   response.send('Page not found');
 });
 
 //Verify the user
 
-app.get('/user', async (req, res) => {
+function handleGetUser(req, res){
   console.log("Getting the user", req.user);
   res.send(req.user);
-});
+};
 
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
