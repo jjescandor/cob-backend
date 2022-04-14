@@ -6,7 +6,7 @@ const cors = require('cors');
 const Book = require('./book.js');
 const Reading = require('./reading.js');
 const mongoose = require('mongoose');
-const { request } = require('express');
+const verifyUser = require('./auth.js');
 
 const app = express();
 app.use(cors());
@@ -21,12 +21,19 @@ db.once('open', function () {
 
 const PORT = process.env.PORT || 3002;
 
-app.get('/test', (request, response) => {
-  response.send('test request received');
+app.use(verifyUser);
+app.use(express.json());
+
+//Verify the user
+
+app.get('/user', async (req, res) => {
+  console.log("Getting the user", req.user);
+  res.send(req.user);
 });
 
 
 //Books Schema
+
 app.get('/books', async (request, response) => {
   const books = await Book.find({});
 
@@ -42,8 +49,6 @@ app.delete('/books/:id', async (request, response, next) => {
     next(error);
   }
 });
-
-app.use(express.json());
 
 app.post('/books', async (request, response, next) => {
   try {
@@ -70,7 +75,6 @@ app.put('/books/:id', async (request, response, next) => {
 
 app.get('/reading', async (request, response) => {
   const reads = await Reading.find({});
-
   response.send(reads);
 });
 
@@ -84,11 +88,9 @@ app.delete('/reading/:id', async (request, response, next) => {
   }
 });
 
-app.use(express.json());
-
 app.post('/reading', async (request, response, next) => {
   try {
-    const newReading = await Reading.create(request.body);
+    const newReading = await Reading.create(request.body,);
     response.status(204).send('Book was successfully created.');
   } catch (error) {
     console.error(error);
@@ -105,5 +107,9 @@ app.put('/reading/:id', async (request, response, next) => {
     next(error);
   }
 })
+
+app.get('*', (request, response) => {
+  response.send('Page not found');
+});
 
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
