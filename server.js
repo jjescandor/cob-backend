@@ -24,18 +24,10 @@ const PORT = process.env.PORT || 3002;
 app.use(verifyUser);
 app.use(express.json());
 
-//Verify the user
-
-app.get('/user', async (req, res) => {
-  console.log("Getting the user", req.user);
-  res.send(req.user);
-});
-
-
 //Books Schema
 
 app.get('/books', async (request, response) => {
-  const books = await Book.find({});
+  const books = await Book.find();
 
   response.send(books);
 });
@@ -73,9 +65,15 @@ app.put('/books/:id', async (request, response, next) => {
 
 //Reading Schema
 
-app.get('/reading', async (request, response) => {
-  const reads = await Reading.find({});
-  response.send(reads);
+app.get('/reading', async (req, res) => {
+  console.log(req.user.email)
+  try{
+  const reads = await Reading.find({email:req.user.email});
+  res.send(reads);
+  }catch(error){
+    console.error(error);
+    res.status(400).send('Could not find books');
+  }
 });
 
 app.delete('/reading/:id', async (request, response, next) => {
@@ -90,7 +88,7 @@ app.delete('/reading/:id', async (request, response, next) => {
 
 app.post('/reading', async (request, response, next) => {
   try {
-    const newReading = await Reading.create(request.body,);
+    const newReading = await Reading.create({...request.body, email:request.user.email});
     response.status(204).send('Book was successfully created.');
   } catch (error) {
     console.error(error);
@@ -110,6 +108,13 @@ app.put('/reading/:id', async (request, response, next) => {
 
 app.get('*', (request, response) => {
   response.send('Page not found');
+});
+
+//Verify the user
+
+app.get('/user', async (req, res) => {
+  console.log("Getting the user", req.user);
+  res.send(req.user);
 });
 
 app.listen(PORT, () => console.log(`listening on ${PORT}`));
